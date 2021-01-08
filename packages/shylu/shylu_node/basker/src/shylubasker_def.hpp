@@ -15,6 +15,7 @@
 #include "shylubasker_nfactor.hpp"
 #include "shylubasker_nfactor_inc.hpp"
 #include "shylubasker_solve_rhs.hpp"
+//#include "shylubasker_trsolve_rhs.hpp"
 #include "shylubasker_util.hpp"
 #include "shylubasker_stats.hpp"
 #include "shylubasker_order.hpp"
@@ -1419,7 +1420,7 @@ namespace BaskerNS
 
   template <class Int, class Entry, class Exe_Space>
   BASKER_INLINE
-  int Basker<Int, Entry, Exe_Space>::Solve(Entry *b, Entry *x)
+  int Basker<Int, Entry, Exe_Space>::Solve(Entry *b, Entry *x, bool transpose)
   {
     #ifdef BASKER_TIMER 
     Kokkos::Timer timer;
@@ -1457,7 +1458,7 @@ namespace BaskerNS
 
   template <class Int, class Entry, class Exe_Space>
   BASKER_INLINE
-  int Basker<Int,Entry,Exe_Space>::Solve(Int nrhs, Entry *b, Entry *x)
+  int Basker<Int,Entry,Exe_Space>::Solve(Int nrhs, Entry *b, Entry *x, bool transpose)
   {
     #ifdef BASKER_TIMER 
     Kokkos::Timer timer;
@@ -1495,7 +1496,7 @@ namespace BaskerNS
 
   template <class Int, class Entry, class Exe_Space>
   BASKER_INLINE
-  int Basker<Int, Entry, Exe_Space>::Solve(ENTRY_1DARRAY b, ENTRY_1DARRAY x)
+  int Basker<Int, Entry, Exe_Space>::Solve(ENTRY_1DARRAY b, ENTRY_1DARRAY x, bool transpose)
   {
     printf("Basker: This solve call not implemented\n");
     return -1;
@@ -1504,7 +1505,7 @@ namespace BaskerNS
 
   template <class Int, class Entry, class Exe_Space>
   BASKER_INLINE
-  int Basker<Int, Entry, Exe_Space>::Solve(Int nrhs, Entry *b, Entry *x, Int option)
+  int Basker<Int, Entry, Exe_Space>::Solve(Int nrhs, Entry *b, Entry *x, Int option, bool transpose)
   {    
     int err = 0;
     printf("Basker: This solve call not implemented\n");

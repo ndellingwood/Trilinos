@@ -77,16 +77,16 @@ namespace BaskerNS
     int Factor_Inc(Int option);
 
     BASKER_INLINE
-    int Solve(Entry *b, Entry *x);
+    int Solve(Entry *b, Entry *x, bool transpose = false);
 
     BASKER_INLINE
-    int Solve(Int nrhs, Entry *b, Entry *x);
+    int Solve(Int nrhs, Entry *b, Entry *x, bool transpose = false);
 
     BASKER_INLINE
-    int Solve(ENTRY_1DARRAY b, ENTRY_1DARRAY x);
+    int Solve(ENTRY_1DARRAY b, ENTRY_1DARRAY x, bool transpose = false);
 
     BASKER_INLINE
-    int Solve(Int nrhs, Entry *b, Entry *x, Int option);
+    int Solve(Int nrhs, Entry *b, Entry *x, Int option, bool transpose = false);
 
     BASKER_INLINE
     int SolveTest();
@@ -1299,6 +1299,8 @@ namespace BaskerNS
 
     ENTRY_1DARRAY x_view_ptr_copy;
     ENTRY_1DARRAY y_view_ptr_copy;
+
+    // Final composition of permutations used during solve
     INT_1DARRAY perm_inv_comp_array;
     INT_1DARRAY perm_comp_array;
 
