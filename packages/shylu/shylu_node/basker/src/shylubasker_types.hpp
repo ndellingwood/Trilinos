@@ -134,6 +134,7 @@ enum BASKER_INCOMPLETE_CODE
 //Macro Arrays
 #define KOKKOS_NOINIT             Kokkos::ViewAllocateWithoutInitializing
 #define INT_1DARRAY               Kokkos::View<BASKER_INT*,          BASKER_EXE_SPACE>
+#define INT_RANK2DARRAY           Kokkos::View<BASKER_INT**,         BASKER_EXE_SPACE>
 #define INT_2DARRAY               Kokkos::View<INT_1DARRAY*,         BASKER_EXE_SPACE> 
 #define ENTRY_1DARRAY             Kokkos::View<BASKER_ENTRY*,        BASKER_EXE_SPACE>
 #define ENTRY_2DARRAY             Kokkos::View<ENTRY_1DARRAY*,       BASKER_EXE_SPACE>  
@@ -160,6 +161,14 @@ enum BASKER_INCOMPLETE_CODE
   { \
     BASKER_ASSERT(s>0, "BASKER ASSERT MALLOC int_1d: size to alloc > 0 fails"); \
     a = INT_1DARRAY(KOKKOS_NOINIT("int_1d"),s); \
+    if(a.data() == NULL)           \
+      throw std::bad_alloc();	   \
+  }
+#define MALLOC_INT_RANK2DARRAY(a,s0,s1)   \
+  { \
+    BASKER_ASSERT(s0>0, "BASKER ASSERT MALLOC int_rank2d: size to alloc > 0 fails"); \
+    BASKER_ASSERT(s1>0, "BASKER ASSERT MALLOC int_rank2d: size to alloc > 0 fails"); \
+    a = INT_RANK2DARRAY(KOKKOS_NOINIT("int_rank2d"),s0,s1); \
     if(a.data() == NULL)           \
       throw std::bad_alloc();	   \
   }
@@ -282,6 +291,11 @@ enum BASKER_INCOMPLETE_CODE
 #define FREE_INT_1DARRAY(a)      \
   { \
     a = INT_1DARRAY(); \
+  }
+
+#define FREE_INT_RANK2DARRAY(a)      \
+  { \
+    a = INT_RANK2DARRAY(); \
   }
 
 #define FREE_INT_2DARRAY(a,n)                    \

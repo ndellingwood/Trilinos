@@ -1221,6 +1221,20 @@ namespace BaskerNS
     BASKER_INLINE
     int spmv_BTF(Int, BASKER_MATRIX &, ENTRY_1DARRAY &, ENTRY_1DARRAY &);
 
+
+    /////////////
+    // Runtime transpose solve option
+    BASKER_INLINE
+    int solve_interfacetr(Entry *, Entry*);
+
+    BASKER_INLINE
+    int solve_interfacetr(Int, Entry *, Entry*);
+
+    BASKER_INLINE
+    int solve_interfacetr(ENTRY_1DARRAY &, ENTRY_1DARRAY &);
+
+    /////////////
+
     //basker_stats.hpp
     BASKER_INLINE
     void print_local_time_stats();
@@ -1269,6 +1283,24 @@ namespace BaskerNS
     MATRIX_2DARRAY LU;   // view of views of 2D blocks; stores CCS factored AVM
     INT_1DARRAY LL_size; // tracks the number of 2D blocks ('rows') in a given 'column'
     INT_1DARRAY LU_size;
+
+    // Arrays for runtime transpose solve
+    // Track col-ordered graph of based on row,col counts as "indexing" for the scotch ND blocks
+    INT_1DARRAY L_size; // LL_size
+    INT_1DARRAY L_first; // first index to LL in trans solves
+    INT_1DARRAY L_second; // second index to LL in trans solves
+
+    INT_1DARRAY U_size; //LU_size
+    INT_1DARRAY U_first; // first index to LU in trans solves
+    INT_1DARRAY U_second; // second index to LU in trans solves
+
+    INT_1DARRAY LT_size; //LU_size
+    INT_1DARRAY LT_first; // first index to LL in trans solves
+    INT_1DARRAY LT_second; // second index to LL in trans solves
+
+    INT_1DARRAY UT_size; // LL_size
+    INT_1DARRAY UT_first; // first index to LU in trans solves
+    INT_1DARRAY UT_second; // second index to LU in trans solves
 
 
     //Used for BTF

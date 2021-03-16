@@ -264,7 +264,7 @@ namespace BaskerNS
     gpermi(k)= k;
 
     return BASKER_SUCCESS;
-  }//end t_single_factor
+  }//end t_single_nfactor
 
 
   template <class Int, class Entry, class Exe_Space>

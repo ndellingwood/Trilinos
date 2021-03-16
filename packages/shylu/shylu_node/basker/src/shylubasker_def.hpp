@@ -15,7 +15,7 @@
 #include "shylubasker_nfactor.hpp"
 #include "shylubasker_nfactor_inc.hpp"
 #include "shylubasker_solve_rhs.hpp"
-//#include "shylubasker_trsolve_rhs.hpp"
+#include "shylubasker_trsolve_rhs.hpp"
 #include "shylubasker_util.hpp"
 #include "shylubasker_stats.hpp"
 #include "shylubasker_order.hpp"
@@ -95,7 +95,26 @@ namespace BaskerNS
    
     FREE_INT_1DARRAY(LL_size);
     FREE_INT_1DARRAY(LU_size);
-    
+
+
+    // Delete arrays added for runtime transpose solve
+    FREE_INT_1DARRAY(L_size);
+    FREE_INT_1DARRAY(L_first);
+    FREE_INT_1DARRAY(L_second);
+
+    FREE_INT_1DARRAY(U_size);
+    FREE_INT_1DARRAY(U_first);
+    FREE_INT_1DARRAY(U_second);
+
+    FREE_INT_1DARRAY(LT_size);
+    FREE_INT_1DARRAY(LT_first);
+    FREE_INT_1DARRAY(LT_second);
+
+    FREE_INT_1DARRAY(UT_size);
+    FREE_INT_1DARRAY(UT_first);
+    FREE_INT_1DARRAY(UT_second);
+
+
     //BTF structure
     FREE_INT_1DARRAY(btf_tabs);
     FREE_INT_1DARRAY(btf_blk_work);
@@ -1440,7 +1459,10 @@ namespace BaskerNS
       return BASKER_ERROR;
     }
 
-    solve_interface(x,b);
+    if (transpose == false)
+      solve_interface(x,b);
+    else
+      solve_interfacetr(x,b);
 
     if(Options.verbose == BASKER_TRUE)
     {
@@ -1478,7 +1500,11 @@ namespace BaskerNS
       return BASKER_ERROR;
     }
 
-    solve_interface(nrhs,x,b);
+
+    if (transpose == false)
+      solve_interface(nrhs,x,b);
+    else
+      solve_interfacetr(nrhs,x,b);
 
     if(Options.verbose == BASKER_TRUE)
     {

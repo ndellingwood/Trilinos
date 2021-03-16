@@ -622,7 +622,7 @@ namespace BaskerNS
             L.val(lnnz) = EntryOP::divide(X(j),pivot);
             #else
             //L.val[lnnz] = X[j]/pivot;
-            L.val(lnnz) = EntryOP::divde(X(j),pivot);
+            L.val(lnnz) = EntryOP::divide(X(j),pivot);
             #endif
 
             #ifdef MY_DEBUG_BASKER

@@ -92,6 +92,12 @@ int main(int argc, char* argv[])
     Entry_ViewType xv("x", m);
     auto x = xv.data();
 
+    std::cout << std::endl;
+    std::cout << "Matrix input:" << std::endl;
+    std::cout << "  1     0     0 " << std::endl;
+    std::cout << "  1     2     0 " << std::endl;
+    std::cout << "  1     0     3 " << std::endl;
+    std::cout << std::endl;
 
     //Start Basker
     // Non-transpose test
@@ -103,6 +109,7 @@ int main(int argc, char* argv[])
       mybasker.Options.symmetric          = BASKER_FALSE;
       mybasker.Options.matching           = BASKER_TRUE;
       mybasker.Options.matching_type      = BASKER_MATCHING_BN;
+      mybasker.Options.no_pivot           = BASKER_FALSE;
 
       mybasker.SetThreads(nthreads);
       std::cout << "Setting Threads:" << nthreads << std::endl;
@@ -124,10 +131,10 @@ int main(int argc, char* argv[])
       std::cout << "Done with Solve, Time: "
         	      << totalTime(ttime, myTime()) << std::endl;
 
-      //std::cout << "Non-transpose solution" << std::endl;
-      //for (Int i = 0; i < m; ++i) {
-      //  std::cout << "  xv(" << i << ") = " << xv(i) << std::endl;
-      //}
+      std::cout << "Non-transpose solution" << std::endl;
+      for (Int i = 0; i < m; ++i) {
+        std::cout << "  xv(" << i << ") = " << xv(i) << std::endl;
+      }
       bool is_correct = true;
       for (Int i = 0; i < m; ++i) {
         if (xv(i) != 1)
@@ -150,6 +157,7 @@ int main(int argc, char* argv[])
       mybasker.Options.symmetric          = BASKER_FALSE;
       mybasker.Options.matching           = BASKER_TRUE;
       mybasker.Options.matching_type      = BASKER_MATCHING_BN;
+      mybasker.Options.no_pivot           = BASKER_FALSE;
 
       mybasker.SetThreads(nthreads);
       std::cout << "Setting Threads:" << nthreads << std::endl;
@@ -175,6 +183,54 @@ int main(int argc, char* argv[])
       //for (Int i = 0; i < m; ++i) {
       //  std::cout << "  xv(" << i << ") = " << xv(i) << std::endl;
       //}
+
+      bool is_correct = true;
+      for (Int i = 0; i < m; ++i) {
+        if (xv(i) != 1)
+          is_correct = false;
+      }
+      std::cout << "  Transpose: is_correct = " << is_correct << std::endl;
+
+      mybasker.Finalize();
+    }
+
+    // Transpose test - mode option to solver
+    {
+      deep_copy(xv,0);
+      std::cout << "Transpose test - mode" << std::endl;
+      BaskerNS::Basker<Int, Entry, Exe_Space> mybasker;
+      //---Options
+      mybasker.Options.transpose          = BASKER_FALSE;
+      mybasker.Options.verbose            = BASKER_TRUE;
+      mybasker.Options.symmetric          = BASKER_FALSE;
+      mybasker.Options.matching           = BASKER_TRUE;
+      mybasker.Options.matching_type      = BASKER_MATCHING_BN;
+      mybasker.Options.no_pivot           = BASKER_FALSE;
+
+      mybasker.SetThreads(nthreads);
+      std::cout << "Setting Threads:" << nthreads << std::endl;
+      double stime = myTime();
+      mybasker.Symbolic(m,n,nnz,col_ptr,row_idx,val);
+      std::cout << "Done with Symbolic, Time: " 
+        	      << totalTime(stime, myTime()) << std::endl;
+      double ftime = myTime();
+      mybasker.Factor(m,n,nnz,col_ptr,row_idx,val);
+      std::cout << "Done with Factor, Time: "
+	              << totalTime(ftime, myTime()) << std::endl;
+      //mybasker.DEBUG_PRINT();
+      double ttime = myTime();
+      Int *lperm;
+      Int *rperm;
+      mybasker.GetPerm(&lperm,&rperm);
+    
+      mybasker.Solve(ty,x, true);
+      std::cout << "Done with Solve, Time: "
+        	      << totalTime(ttime, myTime()) << std::endl;
+
+      std::cout << "Transpose mode solution" << std::endl;
+      for (Int i = 0; i < m; ++i) {
+        std::cout << "  xv(" << i << ") = " << xv(i) << std::endl;
+      }
 
       bool is_correct = true;
       for (Int i = 0; i < m; ++i) {

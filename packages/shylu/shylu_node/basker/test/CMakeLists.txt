@@ -7,6 +7,12 @@ IF(Kokkos_ENABLE_OPENMP)
      )
 
     TRIBITS_ADD_EXECUTABLE(
+        simple_fullmtx_test
+        NOEXEPREFIX
+        SOURCES simple_fullmtx_test.cpp
+     )
+
+    TRIBITS_ADD_EXECUTABLE(
         singular_matrix_check
         NOEXEPREFIX
         SOURCES singular_matrix_check.cpp
