@@ -15,6 +15,8 @@ int main(int argc, char* argv[])
   typedef double         Entry;
   typedef Kokkos::OpenMP Exe_Space;
 
+  const bool transpose = false;
+
   if(argc < 2)
   {
     std::cout << "Inputs nthreads matrix.mtx (optional rhs.mtx)" << std::endl;
@@ -61,9 +63,9 @@ int main(int argc, char* argv[])
     y = new Entry[m]();
     for(Int i = 0; i < vm; i++)
     {
-      xhat[i] = (Entry) i;
+      xhat[i] = (Entry) 1;
     }
-    multiply<Int,Entry>(m,n,col_ptr,row_idx,val, xhat, y);
+    multiply<Int,Entry>(m,n,col_ptr,row_idx,val,xhat,y);
     for(Int i = 0; i < vm; i++)
     {
       //std::cout  << "y " << y[i] << std::endl;
@@ -89,22 +91,31 @@ int main(int argc, char* argv[])
     BaskerNS::Basker<Int, Entry, Exe_Space> mybasker;
     //---Options
     mybasker.Options.same_pattern       = BASKER_FALSE;
-    mybasker.Options.verbose            = BASKER_FALSE;
+    mybasker.Options.verbose            = BASKER_TRUE;
     mybasker.Options.verbose_matrix_out = BASKER_FALSE;
     mybasker.Options.realloc            = BASKER_TRUE;
     mybasker.Options.transpose          = BASKER_FALSE;
     mybasker.Options.symmetric          = BASKER_FALSE;
     mybasker.Options.AtA                = BASKER_TRUE;
     mybasker.Options.A_plus_At          = BASKER_TRUE;
-    mybasker.Options.matching           = BASKER_TRUE;
-    mybasker.Options.matching_type      = BASKER_MATCHING_BN;
-    mybasker.Options.btf                = BASKER_TRUE;
     mybasker.Options.btf_max_percent    = BASKER_BTF_MAX_PERCENT;
     mybasker.Options.btf_large          = BASKER_BTF_LARGE;
-    mybasker.Options.no_pivot           = BASKER_FALSE;
     //mybasker.Options.pivot_tol          = .001;
     //mybasker.Options.pivot_bias         = .001;
     //mybasker.Options.btf_prune_size      = 2;
+
+    mybasker.Options.btf                = BASKER_TRUE;
+    mybasker.Options.btf_matching       = 2; // Trilinos
+    //mybasker.Options.btf_matching       = 1; // Basker's
+    mybasker.Options.matching           = BASKER_TRUE;
+    mybasker.Options.matching_type      = BASKER_MATCHING_BN;
+    //mybasker.Options.no_pivot           = BASKER_FALSE;
+
+    // Modified for transpose testing
+    //mybasker.Options.matching           = BASKER_FALSE;
+    mybasker.Options.no_pivot           = BASKER_TRUE;
+    mybasker.Options.blk_matching       = BASKER_FALSE;
+    mybasker.Options.replace_tiny_pivot = BASKER_FALSE;
 
    
     mybasker.SetThreads(nthreads);
@@ -119,10 +130,6 @@ int main(int argc, char* argv[])
 	      << totalTime(ftime, myTime()) << std::endl;
     //mybasker.DEBUG_PRINT();
     double ttime = myTime();
-    mybasker.SolveTest();
-    Int *lperm;
-    Int *rperm;
-    mybasker.GetPerm(&lperm,&rperm);
     
     mybasker.Solve(y,x);
     std::cout << "Done with Solve, Time: "
@@ -137,6 +144,44 @@ int main(int argc, char* argv[])
     std::cout << "||X||: " << norm2<Int,Entry>(n,x)
 	      << " ||Y-AX||: " << norm2<Int,Entry>(m,xhat)
 	      << std::endl;
+
+
+
+
+    if (transpose) {
+    // Transpose solve:
+    // This solve only works with square matrices
+    Entry* yt = new Entry[m]();
+    // Re-init xhat to 1's
+    for(Int i = 0; i < vm; i++)
+    {
+      xhat[i] = (Entry) 1;
+    }
+    multiply_tr<Int,Entry>(m,n,col_ptr,row_idx,val,xhat,yt);
+    for(Int i = 0; i < vm; i++)
+    {
+      //std::cout  << "y " << y[i] << std::endl;
+      xhat[i] = (Entry) 0.0;
+      x[i] = (Entry) 0.0;
+    }
+
+    ttime = myTime();
+    // transpose
+    mybasker.Solve(yt,x,true);
+    std::cout << "Done with Solve, Time: "
+	      << totalTime(ttime, myTime()) << std::endl;
+
+    multiply_tr<Int,Entry>(m,n,col_ptr,row_idx,val,x,xhat);
+    for(Int i = 0; i < m; i++)
+    {
+      xhat[i] = yt[i] - xhat[i];
+    }
+
+    std::cout << "||X||: " << norm2<Int,Entry>(n,x)
+	      << " ||Y-AX||: " << norm2<Int,Entry>(m,xhat)
+	      << std::endl;
+
+    }
 
     /*
     //Refactor
