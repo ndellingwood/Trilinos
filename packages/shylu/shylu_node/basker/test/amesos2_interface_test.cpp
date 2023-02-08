@@ -103,12 +103,14 @@ int main(int argc, char* argv[])
     //mybasker.Options.btf_matching       = 1; // Basker's
     mybasker.Options.matching           = BASKER_TRUE;
     mybasker.Options.matching_type      = BASKER_MATCHING_BN;
-    mybasker.Options.no_pivot           = BASKER_TRUE;
+    mybasker.Options.no_pivot           = BASKER_TRUE; // Disable pivoting for matlab comparison
 
     // Modified for transpose testing
     mybasker.Options.blk_matching       = BASKER_FALSE;
     mybasker.Options.replace_tiny_pivot = BASKER_FALSE;
 
+//    mybasker.Options.amd_dom              = BASKER_FALSE; // Setting this false breaks the transpose solve with atond
+    mybasker.Options.static_delayed_pivot = BASKER_FALSE;
    
     mybasker.SetThreads(nthreads);
     std::cout << "Setting Threads:" << nthreads << std::endl;
@@ -164,7 +166,7 @@ int main(int argc, char* argv[])
     std::cout << "\n\n** Begin Transpose Solve **\n" << std::endl;
     // transpose
     mybasker.Solve(yt,x,true);
-    std::cout << "Done with Solve, Time: "
+    std::cout << "Done with Transpose Solve, Time: "
 	      << totalTime(ttime, myTime()) << std::endl;
 
     multiply_tr<Int,Entry>(m,n,col_ptr,row_idx,val,x,xhat);
