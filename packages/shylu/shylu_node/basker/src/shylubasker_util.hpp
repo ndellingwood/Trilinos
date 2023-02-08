@@ -2241,7 +2241,7 @@ namespace BaskerNS
 
     for(Int i = 0; i < n; i++)
     {
-      fprintf(fp, "%ld \n", (long)x(i));
+      fprintf(fp, "%ld\n", (long)x(i));
     }
 
     fclose(fp);
@@ -2262,7 +2262,8 @@ namespace BaskerNS
 
     for(Int i = 0; i < n; i++)
     {
-      fprintf(fp, "%f \n", x(i));
+      //fprintf(fp, "%lf\n", x(i));
+      fprintf(fp, "%.16e\n", x(i));
     }
 
     fclose(fp);
