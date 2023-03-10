@@ -24,8 +24,8 @@
 //#define BASKER_DEBUG_SOLVE_RHS_TR_PRINT_MTX
 #define BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS
 #ifdef BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS
-#define BLOCK_START 7
-#define BLOCK_END 8
+#define BLOCK_START 0//7
+#define BLOCK_END 30//8
 #endif
 
 
@@ -84,6 +84,11 @@ namespace BaskerNS
     permute_and_init_for_solve(_y, x_view_ptr_copy, y_view_ptr_copy, perm_comp_array, gn);
       // rhs content from _y has been permuted and copied to x_view_ptr_copy which will act as the rhs-to-update during solve calls; y_view_ptr_copy will store the pivots (i.e. solutions)
 
+#ifdef BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS
+    printVec("perm_comp_array.txt", perm_comp_array, gn);
+    printVec("perm_inv_comp_array.txt", perm_inv_comp_array, gn);
+    printVec("rhs-postperm.txt", x_view_ptr_copy, x_view_ptr_copy.extent(0));
+#endif
     solve_interfacetr(x_view_ptr_copy, y_view_ptr_copy);
 
     if (Options.no_pivot == BASKER_FALSE) {
@@ -98,6 +103,9 @@ namespace BaskerNS
 #endif
     permute_inv_and_finalcopy_after_solve(_x, x_view_ptr_copy, y_view_ptr_copy, perm_inv_comp_array, gn);
     // final solution is permuted back to original ordering and copied to _x
+#ifdef BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS
+    printVec("x_solution_postperminv.txt", _x, gn);
+#endif
 
     return 0;
   }
@@ -178,12 +186,12 @@ namespace BaskerNS
 #endif
       } //over all nnz in a column
       // Complete the solution and store in rhs x 
-#ifdef BASKER_DEBUG_SOLVE_RHS_TR
-      std::cout << "  LT Pre-row k solve: y(k+brow) = " << y(k+brow) << " x(k+bcol) = " << x(k+bcol) << " M.val(istart) (diag entry) = " << M.val(istart) << std::endl;
+#if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
+      std::cout << "  LT Pre-row k solve: y(" << k+brow << ") = " << y(k+brow) << " x(k+bcol) = " << x(k+bcol) << " M.val(istart) (diag entry) = " << M.val(istart) << std::endl;
 #endif
       y(k+brow) = x(k+bcol) / M.val(M.col_ptr(k));
-#ifdef BASKER_DEBUG_SOLVE_RHS_TR
-      std::cout << "  After row k solve: y(k+brow) = " << y(k+brow) << std::endl;
+#if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
+      std::cout << "  LT After row k solve: y(k+brow) = " << y(k+brow) << std::endl;
 #endif
     } //over each column
 
@@ -213,12 +221,14 @@ namespace BaskerNS
 #endif
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
     // Solve initial row 0 transpose (i.e. col 0) before inner loop
-    std::cout << "\n  UT Pre-row 0 solve: y(brow) = " << y(brow) << " x(bcol) = " << x(bcol) << " M.val(M.col_ptr(1)-1) (diag entry) = " << M.val(M.col_ptr(1)-1) << std::endl;
+    std::cout << "\n  UT Pre-row 0 solve: y(" << brow << ") = " << y(brow) << " x(bcol) = " << x(bcol) << " M.val(M.col_ptr(1)-1) (diag entry) = " << M.val(M.col_ptr(1)-1) << std::endl;
 #endif
     y(brow) = x(bcol) / M.val(M.col_ptr(1)-1);
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
-    std::cout << "  After row 0 solve: y(brow) = " << y(brow) << std::endl;
+    std::cout << "  UT After row 0 solve: y(brow) = " << y(brow) << std::endl;
 #endif
+
+    // TODO Dump file output for a list of row ids to compare with matlab computation of the solve
 
     // k is a col of U CCS; for transpose solve, treat k as a row of U^T
     for(Int k = 1; k < M.ncol; k++) // k == 0 already handled above
@@ -244,7 +254,7 @@ namespace BaskerNS
         std::cout << "    inner loop: i = " << i << "  j = " << j << "  brow = " << brow << std::endl;
         std::cout << "    Before update to k+brow: x(k+brow) = " << x(k+brow) << "  y(j) = " << y(j) << "  M.val(i) = " << M.val(i) << std::endl;
 #endif
-        x(k+brow) -= M.val(i)*y(j);
+        x(k+brow) -= M.val(i)*y(j); // TODO: test with storing in a tmp var during the reduction pattern, then overwrite x with the final value
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
         std::cout << "    After update to k+brow: x(k+brow) = " << x(k+brow) << std::endl;
 #endif
@@ -701,11 +711,19 @@ namespace BaskerNS
       //BTF_C.print();
       printMTX("BTF_C.mtx", BTF_C);
     }
+
+    std::string fname = "Num-btfc-blocks.txt";
+    FILE *fp;
+    fp = fopen(fname.c_str(), "w");
+    if (fp) {
+      fprintf(fp, "%ld\n", (long)nblks_c);
+      fclose(fp);
+    }
 #endif
 
     for(Int b = 0;  b < nblks_c; b++) {
 //#if defined(BASKER_DEBUG_SOLVE_RHS_TR) || #defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS)
-      std::cout << "\n\nBTF_C^T diag block b = " << b << std::endl;
+      std::cout << "\n\nBTF_C^T diag block b = " << b << "  bsize = " << btf_tabs(b+1)-btf_tabs(b) << std::endl;
 //#endif
 
 #ifdef BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS
@@ -724,14 +742,52 @@ namespace BaskerNS
         printVec("x-b"+std::to_string(b)+"-presmpv.txt", x, bstart+bsize);
         printVec("y-b"+std::to_string(b)+"-presmpv.txt", y, bstart+bsize);
 
-        FILE *fp;
         std::string fname = "Block"+std::to_string(b)+"-size-info.txt";
         fp = fopen(fname.c_str(), "w");
+        if (fp) {
+          fprintf(fp, "%ld\n", (long)b);
+          fprintf(fp, "%ld\n", (long)bstart);
+          fprintf(fp, "%ld\n", (long)bsize);
+          /*
           fprintf(fp, "block b=%ld\n", (long)b);
           fprintf(fp, "bstart=%ld\n", (long)bstart);
           fprintf(fp, "bsize=%ld\n", (long)bsize);
           fprintf(fp, "bstart+bsize=%ld\n", (long)(bstart+bsize));
-        fclose(fp);
+          */
+          fclose(fp);
+        }
+
+        std::string nfname = "All-blocks-size-info.txt";
+        if (b == BLOCK_START)
+          fp = fopen(nfname.c_str(), "w");
+        else
+          fp = fopen(nfname.c_str(), "a");
+        if (fp) {
+          fprintf(fp, "block b=%ld\t", (long)b);
+          fprintf(fp, "bstart=%ld\t", (long)bstart);
+          fprintf(fp, "bsize=%ld\t", (long)bsize);
+          fprintf(fp, "bstart+bsize=%ld\n", (long)(bstart+bsize));
+          fclose(fp);
+        }
+
+        nfname = "block-sizes.txt";
+        if (b == BLOCK_START)
+          fp = fopen(nfname.c_str(), "w");
+        else
+          fp = fopen(nfname.c_str(), "a");
+        if (fp) {
+          fprintf(fp, "%ld\n", (long)bsize);
+          fclose(fp);
+        }
+        nfname = "block-starts-0base.txt";
+        if (b == BLOCK_START)
+          fp = fopen(nfname.c_str(), "w");
+        else
+          fp = fopen(nfname.c_str(), "a");
+        if (fp) {
+          fprintf(fp, "%ld\n", (long)bstart);
+          fclose(fp);
+        }
       }
 #endif
 
