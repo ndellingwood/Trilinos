@@ -2310,6 +2310,27 @@ namespace BaskerNS
 
 
   template <class Int, class Entry, class Exe_Space>
+  BASKER_INLINE
+  void Basker<Int, Entry,Exe_Space>::printVec
+  (
+   std::string fname, 
+   BASKER_ENTRY* x, 
+   Int n
+  )
+  {
+    FILE *fp;
+    fp = fopen(fname.c_str(), "w");
+
+    for(Int i = 0; i < n; i++)
+    {
+      fprintf(fp, "%.16e\n", x[i]);
+    }
+
+    fclose(fp);
+  }//end printVec(file,Int);
+   //
+
+  template <class Int, class Entry, class Exe_Space>
   inline
   Int Basker<Int, Entry, Exe_Space>::t_get_kid
   (
