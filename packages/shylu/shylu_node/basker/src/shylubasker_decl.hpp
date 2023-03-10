@@ -1171,6 +1171,9 @@ namespace BaskerNS
     BASKER_INLINE
     void printVec(std::string, ENTRY_1DARRAY, Int);
 
+    BASKER_INLINE
+    void printVec(std::string, BASKER_ENTRY*, Int);
+
     void get_total_perm(INT_1DARRAY, INT_1DARRAY);
 
     //inline
