@@ -19,6 +19,7 @@
 /*System Includes*/
 #include <iostream>
 #include <string>
+#include <set>
 
 //#define BASKER_DEBUG_SOLVE_RHS_TR
 //#define BASKER_DEBUG_SOLVE_RHS_TR_PRINT_MTX
@@ -26,6 +27,7 @@
 #ifdef BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS
 #define BLOCK_START 0//7
 #define BLOCK_END 30//8
+#define VERBOSE_BLOCK_ID 8
 #endif
 
 
@@ -223,12 +225,10 @@ namespace BaskerNS
     // Solve initial row 0 transpose (i.e. col 0) before inner loop
     std::cout << "\n  UT Pre-row 0 solve: y(" << brow << ") = " << y(brow) << " x(bcol) = " << x(bcol) << " M.val(M.col_ptr(1)-1) (diag entry) = " << M.val(M.col_ptr(1)-1) << std::endl;
 #endif
-    y(brow) = x(bcol) / M.val(M.col_ptr(1)-1);
+    y(brow) = x(bcol) / M.val(M.col_ptr(1)-1); // TODO FIXME Is the diagonal in the expected location? rowids are unsorted...
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
     std::cout << "  UT After row 0 solve: y(brow) = " << y(brow) << std::endl;
 #endif
-
-    // TODO Dump file output for a list of row ids to compare with matlab computation of the solve
 
     // k is a col of U CCS; for transpose solve, treat k as a row of U^T
     for(Int k = 1; k < M.ncol; k++) // k == 0 already handled above
@@ -242,6 +242,31 @@ namespace BaskerNS
       std::cout << "  UT: k = " << k << "  bcol = " << bcol << "  brow = " << brow << std::endl;
 #endif
 
+      // TODO Dump file output for a list of row ids to compare with matlab computation of the solve
+
+#if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS)
+      FILE *fpid = nullptr;
+      FILE *fpval = nullptr;
+      FILE *fpredux = nullptr;
+      FILE *fpysoln = nullptr;
+      FILE *fpytmp = nullptr;
+      std::string fnameid = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k)+"_lrids.txt";
+      std::string fnameval = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_vals.txt";
+      std::string fnameredux = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_redux.txt";
+      std::string fnameysoln = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_ysoln.txt";
+      std::string fnameytmp = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_ytmp.txt";
+      //std::set<long> lrowlist = {81,108,109,111,120,123,135,137,153,182,186,187,189,190,191}; // Local rowids From matlab output for large diffs, converted to 0-based ids here
+      // Block 8 (0-based)
+      if (brow == VERBOSE_BLOCK_ID) {
+        fpid = fopen(fnameid.c_str(), "w");
+        fpval = fopen(fnameval.c_str(), "w");
+        fpredux = fopen(fnameredux.c_str(), "w");
+        fpysoln = fopen(fnameysoln.c_str(), "w");
+        fpytmp = fopen(fnameytmp.c_str(), "w");
+      }
+      double tmpxupdate = x(k+brow);
+#endif
+
       const Int istart = M.col_ptr(k);
       const Int iend = M.col_ptr(k+1);
 
@@ -249,6 +274,18 @@ namespace BaskerNS
       // for U, the diagonal should be stored as last entry of a column (or row for U^T) (not first, like L)
       for(Int i = istart; i < iend-1; ++i)
       {
+#if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS)
+        if (fpid && fpval && (brow == VERBOSE_BLOCK_ID)) {
+          long lridx = (long)M.row_idx(i);
+//          if (lrowlist.find(lridx) != lrowlist.end()) {
+//            std::cout << "  ******** CHECKPOINT: utr file write: i = " << i << "  lrow_idx = " << M.row_idx(i) << "  val = " << M.val(i) << std::endl;
+//            std::cout << "  ********               brow = " << brow << "  lcolid = " << k << std::endl;
+            fprintf(fpid, "%ld\n", lridx);
+            fprintf(fpval, "%.16e\n", (double)M.val(i));
+            fprintf(fpysoln, "%.16e %ld %ld\n", (double)y(M.row_idx(i) + brow),M.row_idx(i), M.row_idx(i) + brow);
+//          }
+        }
+#endif
         const Int j = M.row_idx(i) + brow;
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
         std::cout << "    inner loop: i = " << i << "  j = " << j << "  brow = " << brow << std::endl;
@@ -259,11 +296,48 @@ namespace BaskerNS
         std::cout << "    After update to k+brow: x(k+brow) = " << x(k+brow) << std::endl;
 #endif
       }
+#if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS)
+      if (fpid && fpval && (brow == VERBOSE_BLOCK_ID)) {
+        fclose(fpid);
+        fclose(fpval);
+        fclose(fpysoln);
+      }
+#endif
+
+      // TODO: Test the multiplication result pre-sorting the rowids and vals of U
+
+      // TODO: Test the multiplication result by first storing the product of M.*y, prior to subtracting from x
+#if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS)
+      if (fpytmp && (brow == VERBOSE_BLOCK_ID))
+      {
+        double tmp = 0;
+        for(Int i = istart; i < iend-1; ++i)
+        {
+          const Int j = M.row_idx(i) + brow; // global offset into y
+          tmp += M.val(i)*y(j);
+        }
+        tmpxupdate -= tmp;
+        double tmpsoln = tmpxupdate /  M.val(iend-1);
+        fprintf(fpytmp, "%.16e %16e %16e  %ld %ld\n", tmp, tmpxupdate, tmpsoln, k, k+brow);
+        fclose(fpytmp);
+      }
+#endif
+
       // finish the diag 
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
       std::cout << "  UT Pre-row k solve: y(k+brow) = " << y(k+brow) << " x(k+bcol) = " << x(k+bcol) << " M.val(iend-1) (diag entry) = " << M.val(iend-1) << std::endl;
 #endif
       y(k+brow) = x(k+bcol) / M.val(iend-1); // y == x in M range assumed true at end of this routine, but not automatic as with non-transpose lower_tri_solve since U^T diagonal is not necessarily 1's
+      if (fpredux && (brow == VERBOSE_BLOCK_ID)) {
+        if (bcol != brow) { // These should all be diagonal blocks in this solve with brow and bcol offset on the diagonal
+          std::cout << "  ERROR: bcol != brow ...  brow = " << brow << "  bcol = " << bcol << std::endl;
+          exit(-1);
+        }
+        fprintf(fpredux, "%.16e\n", (double)x(k+bcol)); // This is corresponding Basker value for "tmp" after the reduction portion of the matlab utr code
+        fprintf(fpredux, "%.16e\n", (double)y(k+bcol)); // This is the full updated rhs value
+        fprintf(fpredux, "%.16e\n", (double)M.val(iend-1)); // Diagonal entry
+        fclose(fpredux);
+      }
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
       std::cout << "  After row k solve: y(k+brow) = " << y(k+brow) << std::endl;
       std::cout << "    about to update x: k+bcol = " << k+bcol << " k+brow = " << k+brow << std::endl;
