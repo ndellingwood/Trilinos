@@ -250,11 +250,13 @@ namespace BaskerNS
       FILE *fpredux = nullptr;
       FILE *fpysoln = nullptr;
       FILE *fpytmp = nullptr;
+      FILE *fprowprodparts = nullptr;
       std::string fnameid = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k)+"_lrids.txt";
       std::string fnameval = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_vals.txt";
       std::string fnameredux = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_redux.txt";
       std::string fnameysoln = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_ysoln.txt";
       std::string fnameytmp = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_ytmp.txt";
+      std::string fnamerowprodparts = "utr_brow_"+std::to_string(brow)+"_lcolid_"+std::to_string(k) +"_rowprodparts.txt";
       //std::set<long> lrowlist = {81,108,109,111,120,123,135,137,153,182,186,187,189,190,191}; // Local rowids From matlab output for large diffs, converted to 0-based ids here
       // Block 8 (0-based)
       if (brow == VERBOSE_BLOCK_ID) {
@@ -263,6 +265,7 @@ namespace BaskerNS
         fpredux = fopen(fnameredux.c_str(), "w");
         fpysoln = fopen(fnameysoln.c_str(), "w");
         fpytmp = fopen(fnameytmp.c_str(), "w");
+        fprowprodparts = fopen(fnamerowprodparts.c_str(), "w");
       }
       double tmpxupdate = x(k+brow);
 #endif
@@ -306,8 +309,8 @@ namespace BaskerNS
 
       // TODO: Test the multiplication result pre-sorting the rowids and vals of U
 
-      // TODO: Test the multiplication result by first storing the product of M.*y, prior to subtracting from x
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS)
+      // Test the multiplication result by first storing the product of M.*y, prior to subtracting from x
       if (fpytmp && (brow == VERBOSE_BLOCK_ID))
       {
         double tmp = 0;
@@ -315,11 +318,15 @@ namespace BaskerNS
         {
           const Int j = M.row_idx(i) + brow; // global offset into y
           tmp += M.val(i)*y(j);
+          if(fprowprodparts) {
+            fprintf(fprowprodparts, "%ld %.16e %16e %16e %ld\n", M.row_idx(i), M.val(i), y(j), M.val(i)*y(j), j); // local rowid, value, y, val*y, globalid (for y)
+          }
         }
         tmpxupdate -= tmp;
         double tmpsoln = tmpxupdate /  M.val(iend-1);
         fprintf(fpytmp, "%.16e %16e %16e  %ld %ld\n", tmp, tmpxupdate, tmpsoln, k, k+brow);
         fclose(fpytmp);
+        fclose(fprowprodparts);
       }
 #endif
 
@@ -328,6 +335,8 @@ namespace BaskerNS
       std::cout << "  UT Pre-row k solve: y(k+brow) = " << y(k+brow) << " x(k+bcol) = " << x(k+bcol) << " M.val(iend-1) (diag entry) = " << M.val(iend-1) << std::endl;
 #endif
       y(k+brow) = x(k+bcol) / M.val(iend-1); // y == x in M range assumed true at end of this routine, but not automatic as with non-transpose lower_tri_solve since U^T diagonal is not necessarily 1's
+
+#if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS)
       if (fpredux && (brow == VERBOSE_BLOCK_ID)) {
         if (bcol != brow) { // These should all be diagonal blocks in this solve with brow and bcol offset on the diagonal
           std::cout << "  ERROR: bcol != brow ...  brow = " << brow << "  bcol = " << bcol << std::endl;
@@ -338,6 +347,7 @@ namespace BaskerNS
         fprintf(fpredux, "%.16e\n", (double)M.val(iend-1)); // Diagonal entry
         fclose(fpredux);
       }
+#endif
 #if defined(BASKER_DEBUG_SOLVE_RHS_TR_PRINT_BLOCKS) || defined(BASKER_DEBUG_SOLVE_RHS_TR)
       std::cout << "  After row k solve: y(k+brow) = " << y(k+brow) << std::endl;
       std::cout << "    about to update x: k+bcol = " << k+bcol << " k+brow = " << k+brow << std::endl;
