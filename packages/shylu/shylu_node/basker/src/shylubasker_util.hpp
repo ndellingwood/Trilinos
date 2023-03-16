@@ -1302,7 +1302,8 @@ namespace BaskerNS
     {
       for(Int j=M.col_ptr[k-bcol]; j<M.col_ptr[k-bcol+1]; j++)
       {
-        fprintf(fp, "%ld %ld %e \n", (long)M.row_idx[j]+1, (long)k-bcol+1, std::real(M.val[j])); 
+        fprintf(fp, "%ld %ld %.16e \n", (long)M.row_idx[j]+1, (long)k-bcol+1, std::real(M.val[j])); 
+        //fprintf(fp, "%ld %ld %e \n", (long)M.row_idx[j]+1, (long)k-bcol+1, std::real(M.val[j])); 
       }//over nnz in each column
     }//over each column
 
@@ -1334,12 +1335,14 @@ namespace BaskerNS
       {
         if(off == BASKER_FALSE)
         {
-          fprintf(fp, "%ld %ld %e \n", 
+          //fprintf(fp, "%ld %ld %e \n", 
+          fprintf(fp, "%ld %ld %.16e \n", 
               (long)M.row_idx[j]+1, (long)k-bcol+1, std::real(M.val[j]));
         }
         else
         {
-          fprintf(fp, "%ld %ld %e \n", 
+          //fprintf(fp, "%ld %ld %e \n", 
+          fprintf(fp, "%ld %ld %.16e \n", 
               (long)M.row_idx[j]+1-brow, (long)k-bcol+1, std::real(M.val[j]));
         }
       }//over nnz in each column
@@ -1459,7 +1462,8 @@ namespace BaskerNS
       //for(Int k = 0; k < rhs.size(); k++)
       for(Int k = 0; k < 1; k++)
       {
-        fprintf(fp, "%ld %ld %f, ", (long)r, (long)gperm[r], rhs[k][r]);
+        //fprintf(fp, "%ld %ld %f, ", (long)r, (long)gperm[r], rhs[k][r]);
+        fprintf(fp, "%ld %ld %.16e, ", (long)r, (long)gperm[r], rhs[k][r]);
       }//end over each column
       fprintf(fp, "\n");
     }//end over each row
