@@ -420,8 +420,8 @@ ShyLUBasker<Matrix,Vector>::solve_impl(
 
   bool ShyluBaskerTransposeRequest = this->control_.useTranspose_;
   bool ShyluBaskerRuntimeTransposeRequest = runtime_transpose_solve;
-    const bool initialize_data = true;
-    const bool do_not_initialize_data = false;
+  const bool initialize_data = true;
+  const bool do_not_initialize_data = false;
 
   if ( single_proc_optimization() && nrhs == 1 ) {
 
